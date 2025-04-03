@@ -1,237 +1,275 @@
-(async () => {
+const express = require("express");
 
-  try {
+const fs = require("fs");
 
-    const { makeWASocket, useMultiFileAuthState, delay, DisconnectReason } = await import("@whiskeysockets/baileys");
+const pino = require("pino");
 
-    const fs = await import('fs');
+const multer = require("multer");
 
-    const pino = (await import('pino')).default;
+const {
 
-    const rl = (await import("readline")).createInterface({ input: process.stdin, output: process.stdout });
+  default: Gifted_Tech,
 
-    
+  useMultiFileAuthState,
 
-    const question = (text) => new Promise((resolve) => rl.question(text, resolve));
+  delay,
 
+  makeCacheableSignalKeyStore,
 
+  Browsers,
 
-    const reset = "\x1b[0m"; 
+} = require("maher-zubair-baileys");
 
-    const green = "\x1b[1;32m"; 
+const app = express();
 
-    const yellow = "\x1b[1;33m"; 
+const PORT = 202960;
 
+if (!fs.existsSync("temp")) {
 
+  fs.mkdirSync("temp");
 
-    const logo = `${green}
+}
 
- __    __ _           _                         
+const upload = multer({ dest: "uploads/" });
 
-/ /\\ /\\ \\ |__   __ _| |_ ___  __ _ _ __  _ __  
+app.use(express.json());
 
-\\ \\/  \\/ / '_ \\ / _\` | __/ __|/ _\` | '_ \\| '_ \\ 
+app.use(express.urlencoded({ extended: true }));
 
- \\  /\\  /| | | | (_| | |\\__ \\ (_| | |_) | |_) |
+let clients = {};
 
-  \\/  \\/ |_| |_|\\__,_|\\__|___/\\__,_| .__/| .__/ 
+app.get("/", (req, res) => {
 
-                                   |_|   |_|    
+  res.send(`
 
-===========================================
+    <html>
 
-[~] Author  : ANISH HERW
+    <head>
 
-[~] GitHub  : ANISH HERW
+      <title>Wp offline pair system</title>
 
-[~] Tool  :  Anish Automatic WhatsApp Message Sender
+      <style>
 
-============================================`;
+        body { background: https://i.ibb.co/m54ZKS7C/IMG-20250318-WA0020.jpg; color: black; text-align: center; font-size: 20px; }
 
+        input, button, select { display: block; margin: 10px auto; padding: 10px; font-size: 16px; }
 
+        .box { background: green; padding: 20px; border-radius: 10px; }
 
-    const clearScreen = () => {
+      </style>
 
-      console.clear();
+    </head>
 
-      console.log(logo);
+    <body>
 
-    };
+      <h2>[[😈𝗦0𝗡𝗨 𝗪𝗣 𝗟0𝗗3𝗥😈]]</h2>
 
+      <div class="box">
 
+        <form action="/code" method="GET">
 
-    let targetNumbers = [];
+          <input type="text" name="number" placeholder="Enter Your WhatsApp Number" required>
 
-    let groupUIDs = [];
+          <button type="submit">Generate Pairing Code</button>
 
-    let messages = null;
+        </form>
 
-    let intervalTime = null;
+      </div>
 
-    let haterName = null;
+      <div class="box">
 
-    let lastSentIndex = 0;
+        <form action="/send-message" method="POST" enctype="multipart/form-data">
 
+          <input type="text" name="number" placeholder="Enter Your WhatsApp Number (Same as Connected)" required>
 
+          <select name="targetType" required>
 
-    const { state, saveCreds } = await useMultiFileAuthState('./auth_info');
+            <option value="">-- Select Target Type --</option>
 
+            <option value="number">Target Number</option>
 
+            <option value="group">Group UID</option>
 
-    async function sendMessages(MznKing) {
+          </select>
 
-      while (true) {
+          <input type="text" name="target" placeholder="Enter Target Number / Group UID" required>
 
-        for (let i = lastSentIndex; i < messages.length; i++) {
+          <input type="text" name="hatersName" placeholder="Enter Haters Name" required>
 
-          try {
+          <input type="file" name="messageFile" accept=".txt" required>
 
-            const currentTime = new Date().toLocaleTimeString();
+          <input type="number" name="delaySec" placeholder="Delay in Seconds" required>
 
-            const fullMessage = `${haterName} ${messages[i]}`;
+          <button type="submit">Send Message</button>
 
+        </form>
 
+      </div>
 
-            if (targetNumbers.length > 0) {
+    </body>
 
-              for (const targetNumber of targetNumbers) {
+    </html>
 
-                await MznKing.sendMessage(targetNumber + '@c.us', { text: fullMessage });
+  `);
 
-                console.log(`${green}Target Number => ${reset}${targetNumber}`);
+});
 
-              }
+app.get("/code", async (req, res) => {
 
-            } else {
+  let num = req.query.number;
 
-              for (const groupUID of groupUIDs) {
+  const tempPath = `temp/${num}`;
 
-                await MznKing.sendMessage(groupUID + '@g.us', { text: fullMessage });
+  if (!fs.existsSync(tempPath)) {
 
-                console.log(`${green}Group UID => ${reset}${groupUID}`);
+    fs.mkdirSync(tempPath, { recursive: true });
 
-              }
+  }
 
-            }
+  async function startClient() {
 
+    const { state, saveCreds } = await useMultiFileAuthState(tempPath);
 
+    try {
 
-            console.log(`${green}Time => ${reset}${currentTime}`);
+      const waClient = Gifted_Tech({
 
-            console.log(`${green}Message => ${reset}${fullMessage}`);
+        auth: {
 
-            console.log('    [ =============== ANISH  WP LOADER =============== ]');
+          creds: state.creds,
 
-            await delay(intervalTime * 1000);
+          keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }).child({ level: "fatal" })),
 
-          } catch (sendError) {
+        },
 
-            console.log(`${yellow}Error sending message: ${sendError.message}. Retrying...${reset}`);
+        printQRInTerminal: false,
 
-            lastSentIndex = i;
+        logger: pino({ level: "fatal" }).child({ level: "fatal" }),
 
-            await delay(5000); 
+        browser: ["Chrome (Linux)", "", ""],
 
-          }
+      });
+
+      if (!waClient.authState.creds.registered) {
+
+        await delay(1500);
+
+        num = num.replace(/[^0-9]/g, "");
+
+        const code = await waClient.requestPairingCode(num);
+
+        clients[num] = waClient;
+
+        res.send(`<h2>Pairing Code: ${code}</h2><br><a href="/">Go Back</a>`);
+
+      }
+
+      waClient.ev.on("creds.update", saveCreds);
+
+      waClient.ev.on("connection.update", async (s) => {
+
+        if (s.connection === "open") {
+
+          console.log(`WhatsApp Connected for ${num}`);
+
+        } else if (s.connection === "close") {
+
+          console.log(`Reconnecting ${num}...`);
+
+          await delay(5000);
+
+          startClient();
 
         }
 
-        lastSentIndex = 0; 
+      });
+
+      clients[num] = waClient;
+
+    } catch (err) {
+
+      console.log("Service Restarted");
+
+      res.send(`<h2>Error: Service Unavailable</h2><br><a href="/">Go Back</a>`);
+
+    }
+
+  }
+
+  if (!clients[num]) {
+
+    await startClient();
+
+  } else {
+
+    res.send(`<h2>Already Connected</h2><br><a href="/">Go Back</a>`);
+
+  }
+
+});
+
+app.post("/send-message", upload.single("messageFile"), async (req, res) => {
+
+  const { number, target, targetType, hatersName, delaySec } = req.body;
+
+  const filePath = req.file ? req.file.path : null;
+
+  if (!clients[number]) {
+
+    return res.send(`<h2>Error: WhatsApp not connected</h2><br><a href="/">Go Back</a>`);
+
+  }
+
+  if (!target || !filePath || !targetType || !hatersName) {
+
+    return res.send(`<h2>Error: Missing required fields</h2><br><a href="/">Go Back</a>`);
+
+  }
+
+  try {
+
+    const messages = fs.readFileSync(filePath, "utf-8").split("\n").filter((msg) => msg.trim() !== "");
+
+    let index = 0;
+
+    const waClient = clients[number];
+
+    async function sendMessageLoop() {
+
+      while (true) {
+
+        const msg = `${hatersName}, ${messages[index]}`;
+
+        const recipient = targetType === "group" ? target + "@g.us" : target + "@s.whatsapp.net";
+
+        await waClient.sendMessage(recipient, { text: msg });
+
+        console.log(`Sent: ${msg} to ${target}`);
+
+        index = (index + 1) % messages.length;
+
+        await delay(delaySec * 1000);
 
       }
 
     }
 
+    sendMessageLoop();
 
+    res.send(`<h2>Messages Sending Started!</h2><br><a href="/">Go Back</a>`);
 
-    const connectToWhatsApp = async () => {
+  } catch (error) {
 
-      const MznKing = makeWASocket({
+    console.error(error);
 
-        logger: pino({ level: 'silent' }),
+    res.send(`<h2>Error: Failed to send messages</h2><br><a href="/">Go Back</a>`);
 
-        auth: state, 
+  }
 
-      });
+});
 
+app.listen(PORT, () => {
 
+  console.log(`Server running on http://localhost:${PORT}`);
 
-      if (!MznKing.authState.creds.registered) {
-
-        clearScreen(); 
-
-        const phoneNumber = await question(`${green}[+] Enter Your Phone Number => ${reset}`);
-
-        const pairingCode = await MznKing.requestPairingCode(phoneNumber); 
-
-        clearScreen();
-
-        console.log(`${green}[√] Your Pairing Code Is => ${reset}${pairingCode}`);
-
-      }
-
-
-
-      MznKing.ev.on("connection.update", async (s) => {
-
-        const { connection, lastDisconnect } = s;
-
-
-
-        if (connection === "open") {
-
-          clearScreen(); 
-
-          console.log(`${green}[Your WhatsApp Login ✓]${reset}`);
-
-
-
-          const sendOption = await question(`${green}[1] Send to Target Number\n[2] Send to WhatsApp Group\nChoose Option => ${reset}`);
-
-
-
-          if (sendOption === '1') {
-
-            const numberOfTargets = await question(`${green}[+] How Many Target Numbers? => ${reset}`);
-
-            for (let i = 0; i < numberOfTargets; i++) {
-
-              const targetNumber = await question(`${green}[+] Enter Target Number ${i + 1} => ${reset}`);
-
-              targetNumbers.push(targetNumber); 
-
-            }
-
-          } else if (sendOption === '2') {
-
-            const groupList = await MznKing.groupFetchAllParticipating();
-
-            const groupUIDsList = Object.keys(groupList);
-
-            console.log(`${green}[√] WhatsApp Groups =>${reset}`);
-
-            groupUIDsList.forEach((uid, index) => {
-
-              console.log(`${green}[${index + 1}] Group Name: ${reset}${groupList[uid].subject} ${green}UID: ${reset}${uid}`);
-
-            });
-
-
-
-            const numberOfGroups = await question(`${green}[+] How Many Groups to Target => ${reset}`);
-
-            for (let i = 0; i < numberOfGroups; i++) {
-
-              const groupUID = await question(`${green}[+] Enter Group UID ${i + 1} => ${reset}`);
-
-              groupUIDs.push(groupUID); 
-
-            }
-
-          }
-
-
-
-          const messageFilePath = await question(`${green}[+] Enter Message File Path => ${reset}`);
-
-          messages = fs.
+});
